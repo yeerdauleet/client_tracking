@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import posthog from 'posthog-js';
+import { authService } from '../services/auth';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -55,10 +56,52 @@ const StatusMessage = styled.div`
   transition: opacity 0.3s;
 `;
 
+const UserInfo = styled.div`
+  margin-bottom: 20px;
+  color: #333;
+`;
+
+const LogoutButton = styled.button`
+  padding: 8px 16px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+
+  &:hover {
+    background: #cc3333;
+  }
+`;
+
+const AuthButtons = styled.div`
+  margin-bottom: 20px;
+`;
+
 const Landing = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
-  // Отслеживаем время проведенное на странице
+  useEffect(() => {
+    // Проверяем аутентификацию при загрузке
+    const checkAuth = async () => {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+      
+      if (currentUser) {
+        posthog.identify(currentUser.email, {
+          email: currentUser.email,
+          username: currentUser.username
+        });
+      }
+    };
+    
+    checkAuth();
+  }, []);
+
+  // Отслеживаем время на странице
   useEffect(() => {
     const startTime = new Date();
     
@@ -69,10 +112,11 @@ const Landing = () => {
       posthog.capture('page_time_spent', {
         page: 'landing',
         duration_ms: timeSpent,
-        duration_seconds: Math.floor(timeSpent / 1000)
+        duration_seconds: Math.floor(timeSpent / 1000),
+        user_id: user?.email || 'anonymous'
       });
     };
-  }, []);
+  }, [user]);
 
   // Отслеживаем скроллинг
   useEffect(() => {
@@ -84,7 +128,8 @@ const Landing = () => {
         if (maxScroll >= 90) {
           posthog.capture('deep_scroll', {
             page: 'landing',
-            scroll_percentage: Math.round(maxScroll)
+            scroll_percentage: Math.round(maxScroll),
+            user_id: user?.email || 'anonymous'
           });
         }
       }
@@ -92,15 +137,16 @@ const Landing = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [user]);
 
   const handleNavigation = (path, action) => {
-    // Расширенная информация о действии пользователя
+    // Отправляем событие в PostHog
     posthog.capture(action, {
       path: path,
       timestamp: new Date().toISOString(),
       location: window.location.href,
       referrer: document.referrer,
+      user_id: user?.email || 'anonymous',
       viewport_size: {
         width: window.innerWidth,
         height: window.innerHeight
@@ -108,7 +154,7 @@ const Landing = () => {
       user_agent: navigator.userAgent,
       language: navigator.language,
       platform: navigator.platform,
-      session_duration: Math.floor((new Date() - new Date(sessionStorage.getItem('session_start') || new Date())) / 1000)
+      is_authenticated: !!user
     });
 
     navigate(path);
@@ -120,13 +166,25 @@ const Landing = () => {
       sessionStorage.setItem('session_start', new Date().toISOString());
       posthog.capture('session_start', {
         timestamp: new Date().toISOString(),
-        referrer: document.referrer
+        referrer: document.referrer,
+        user_id: user?.email || 'anonymous'
       });
     }
-  }, []);
+  }, [user]);
 
   return (
     <Container>
+      {user ? (
+        <UserInfo>
+          Привет, {user.username}! <LogoutButton onClick={() => authService.logout()}>Выйти</LogoutButton>
+        </UserInfo>
+      ) : (
+        <AuthButtons>
+          <Button onClick={() => navigate('/login')}>Войти</Button>
+          <Button onClick={() => navigate('/register')}>Регистрация</Button>
+        </AuthButtons>
+      )}
+
       <Section>
         <Title>Цены и тарифы</Title>
         <Description>
@@ -134,7 +192,7 @@ const Landing = () => {
         </Description>
         <Button 
           onClick={() => handleNavigation('/prices', 'price_page_view')}
-          onMouseEnter={() => posthog.capture('price_button_hover')}
+          onMouseEnter={() => posthog.capture('price_button_hover', { user_id: user?.email || 'anonymous' })}
         >
           Посмотреть цены
         </Button>
@@ -147,7 +205,7 @@ const Landing = () => {
         </Description>
         <Button 
           onClick={() => handleNavigation('/investors', 'investor_page_view')}
-          onMouseEnter={() => posthog.capture('investor_button_hover')}
+          onMouseEnter={() => posthog.capture('investor_button_hover', { user_id: user?.email || 'anonymous' })}
         >
           Стать инвестором
         </Button>
@@ -160,7 +218,7 @@ const Landing = () => {
         </Description>
         <Button 
           onClick={() => handleNavigation('/presentation', 'presentation_page_view')}
-          onMouseEnter={() => posthog.capture('presentation_button_hover')}
+          onMouseEnter={() => posthog.capture('presentation_button_hover', { user_id: user?.email || 'anonymous' })}
         >
           Скачать презентацию
         </Button>
@@ -173,7 +231,7 @@ const Landing = () => {
         </Description>
         <Button 
           onClick={() => handleNavigation('/consultation', 'consultation_page_view')}
-          onMouseEnter={() => posthog.capture('consultation_button_hover')}
+          onMouseEnter={() => posthog.capture('consultation_button_hover', { user_id: user?.email || 'anonymous' })}
         >
           Заказать консультацию
         </Button>

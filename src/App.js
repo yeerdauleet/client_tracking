@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './components/Landing';
+import Login from './components/Login';
+import Register from './components/Register';
 
 // Временные компоненты для остальных страниц
 const Prices = () => <div>Страница с ценами</div>;
@@ -13,6 +15,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/prices" element={<Prices />} />
         <Route path="/investors" element={<Investors />} />
         <Route path="/presentation" element={<Presentation />} />

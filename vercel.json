@@ -1,0 +1,18 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "main.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "main.py"
+        }
+    ],
+    "env": {
+        "POSTGRES_URL": "postgresql://admin:FR67Jl4DfS54zECSvyImzBQWaUQgakbh@dpg-cv490naj1k6c738eu6q0-a.oregon-postgres.render.com/db_n5eb"
+    }
+} 
