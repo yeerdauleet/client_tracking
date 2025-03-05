@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { usePostHog } from 'posthog-js/react';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -56,12 +57,74 @@ const StatusMessage = styled.div`
 
 const Landing = () => {
   const navigate = useNavigate();
+  const posthog = usePostHog();
 
-  const handleNavigation = (path) => {
-    // Просто переходим на соответствующую страницу
-    // Трекинг будет происходить автоматически по URL на бэкенде
+  // Отслеживаем время проведенное на странице
+  useEffect(() => {
+    const startTime = new Date();
+    
+    return () => {
+      const endTime = new Date();
+      const timeSpent = endTime - startTime;
+      
+      posthog.capture('page_time_spent', {
+        page: 'landing',
+        duration_ms: timeSpent,
+        duration_seconds: Math.floor(timeSpent / 1000)
+      });
+    };
+  }, [posthog]);
+
+  // Отслеживаем скроллинг
+  useEffect(() => {
+    let maxScroll = 0;
+    const handleScroll = () => {
+      const scrollPercentage = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+      if (scrollPercentage > maxScroll) {
+        maxScroll = scrollPercentage;
+        if (maxScroll >= 90) {
+          posthog.capture('deep_scroll', {
+            page: 'landing',
+            scroll_percentage: Math.round(maxScroll)
+          });
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [posthog]);
+
+  const handleNavigation = (path, action) => {
+    // Расширенная информация о действии пользователя
+    posthog.capture(action, {
+      path: path,
+      timestamp: new Date().toISOString(),
+      location: window.location.href,
+      referrer: document.referrer,
+      viewport_size: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      },
+      user_agent: navigator.userAgent,
+      language: navigator.language,
+      platform: navigator.platform,
+      session_duration: Math.floor((new Date() - new Date(sessionStorage.getItem('session_start') || new Date())) / 1000)
+    });
+
     navigate(path);
   };
+
+  // Отслеживаем начало сессии
+  useEffect(() => {
+    if (!sessionStorage.getItem('session_start')) {
+      sessionStorage.setItem('session_start', new Date().toISOString());
+      posthog.capture('session_start', {
+        timestamp: new Date().toISOString(),
+        referrer: document.referrer
+      });
+    }
+  }, [posthog]);
 
   return (
     <Container>
@@ -70,7 +133,10 @@ const Landing = () => {
         <Description>
           Ознакомьтесь с нашими конкурентными ценами и гибкими тарифными планами
         </Description>
-        <Button onClick={() => handleNavigation('/prices')}>
+        <Button 
+          onClick={() => handleNavigation('/prices', 'price_page_view')}
+          onMouseEnter={() => posthog.capture('price_button_hover')}
+        >
           Посмотреть цены
         </Button>
       </Section>
@@ -80,7 +146,10 @@ const Landing = () => {
         <Description>
           Узнайте о возможностях инвестирования в наш проект
         </Description>
-        <Button onClick={() => handleNavigation('/investors')}>
+        <Button 
+          onClick={() => handleNavigation('/investors', 'investor_page_view')}
+          onMouseEnter={() => posthog.capture('investor_button_hover')}
+        >
           Стать инвестором
         </Button>
       </Section>
@@ -90,7 +159,10 @@ const Landing = () => {
         <Description>
           Скачайте подробную презентацию о нашем проекте
         </Description>
-        <Button onClick={() => handleNavigation('/presentation')}>
+        <Button 
+          onClick={() => handleNavigation('/presentation', 'presentation_page_view')}
+          onMouseEnter={() => posthog.capture('presentation_button_hover')}
+        >
           Скачать презентацию
         </Button>
       </Section>
@@ -100,7 +172,10 @@ const Landing = () => {
         <Description>
           Наши специалисты готовы ответить на все ваши вопросы
         </Description>
-        <Button onClick={() => handleNavigation('/consultation')}>
+        <Button 
+          onClick={() => handleNavigation('/consultation', 'consultation_page_view')}
+          onMouseEnter={() => posthog.capture('consultation_button_hover')}
+        >
           Заказать консультацию
         </Button>
       </Section>
