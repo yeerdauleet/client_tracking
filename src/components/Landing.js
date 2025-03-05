@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -54,59 +55,13 @@ const StatusMessage = styled.div`
 `;
 
 const Landing = () => {
-  // Базовый URL вашего API (замените на ваш домен после деплоя)
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const navigate = useNavigate();
 
-  const trackUserAction = async (action) => {
-    const endpoints = {
-      'price_button_click': '/track/price',
-      'investor_button_click': '/track/investor',
-      'download_presentation': '/track/presentation',
-      'consultation_request': '/track/consultation'
-    };
-
-    // Получаем или создаем sessionId
-    const sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).substring(7);
-    localStorage.setItem('sessionId', sessionId);
-
-    try {
-      // Создаем URL с минимальными необходимыми параметрами
-      const url = `${API_BASE_URL}${endpoints[action]}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      console.log(`Действие ${action} успешно отслежено`);
-    } catch (error) {
-      console.error('Ошибка при отслеживании:', error);
-      // Сохраняем неотправленные события локально
-      const failedEvents = JSON.parse(localStorage.getItem('failedEvents') || '[]');
-      failedEvents.push({
-        action,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem('failedEvents', JSON.stringify(failedEvents));
-    }
+  const handleNavigation = (path) => {
+    // Просто переходим на соответствующую страницу
+    // Трекинг будет происходить автоматически по URL на бэкенде
+    navigate(path);
   };
-
-  // Пытаемся отправить неотправленные события при загрузке
-  useEffect(() => {
-    const failedEvents = JSON.parse(localStorage.getItem('failedEvents') || '[]');
-    if (failedEvents.length > 0) {
-      failedEvents.forEach(event => {
-        trackUserAction(event.action);
-      });
-      localStorage.removeItem('failedEvents');
-    }
-  }, []);
 
   return (
     <Container>
@@ -115,7 +70,7 @@ const Landing = () => {
         <Description>
           Ознакомьтесь с нашими конкурентными ценами и гибкими тарифными планами
         </Description>
-        <Button onClick={() => trackUserAction('price_button_click')}>
+        <Button onClick={() => handleNavigation('/prices')}>
           Посмотреть цены
         </Button>
       </Section>
@@ -125,7 +80,7 @@ const Landing = () => {
         <Description>
           Узнайте о возможностях инвестирования в наш проект
         </Description>
-        <Button onClick={() => trackUserAction('investor_button_click')}>
+        <Button onClick={() => handleNavigation('/investors')}>
           Стать инвестором
         </Button>
       </Section>
@@ -135,7 +90,7 @@ const Landing = () => {
         <Description>
           Скачайте подробную презентацию о нашем проекте
         </Description>
-        <Button onClick={() => trackUserAction('download_presentation')}>
+        <Button onClick={() => handleNavigation('/presentation')}>
           Скачать презентацию
         </Button>
       </Section>
@@ -145,7 +100,7 @@ const Landing = () => {
         <Description>
           Наши специалисты готовы ответить на все ваши вопросы
         </Description>
-        <Button onClick={() => trackUserAction('consultation_request')}>
+        <Button onClick={() => handleNavigation('/consultation')}>
           Заказать консультацию
         </Button>
       </Section>
