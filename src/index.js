@@ -2,22 +2,21 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import { PostHogProvider } from 'posthog-js/react';
+import posthog from 'posthog-js';
 import reportWebVitals from './reportWebVitals';
 
-const options = {
-  api_host: process.env.REACT_APP_PUBLIC_POSTHOG_HOST,
-}
+// Инициализируем PostHog
+posthog.init(
+  process.env.REACT_APP_PUBLIC_POSTHOG_KEY,
+  {
+    api_host: process.env.REACT_APP_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
+  }
+);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <PostHogProvider 
-      apiKey={process.env.REACT_APP_PUBLIC_POSTHOG_KEY}
-      options={options}
-    >
-      <App />
-    </PostHogProvider>
+    <App />
   </React.StrictMode>
 );
 

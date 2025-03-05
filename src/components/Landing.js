@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { usePostHog } from 'posthog-js/react';
+import posthog from 'posthog-js';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -57,7 +57,6 @@ const StatusMessage = styled.div`
 
 const Landing = () => {
   const navigate = useNavigate();
-  const posthog = usePostHog();
 
   // Отслеживаем время проведенное на странице
   useEffect(() => {
@@ -73,7 +72,7 @@ const Landing = () => {
         duration_seconds: Math.floor(timeSpent / 1000)
       });
     };
-  }, [posthog]);
+  }, []);
 
   // Отслеживаем скроллинг
   useEffect(() => {
@@ -93,7 +92,7 @@ const Landing = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [posthog]);
+  }, []);
 
   const handleNavigation = (path, action) => {
     // Расширенная информация о действии пользователя
@@ -124,7 +123,7 @@ const Landing = () => {
         referrer: document.referrer
       });
     }
-  }, [posthog]);
+  }, []);
 
   return (
     <Container>
